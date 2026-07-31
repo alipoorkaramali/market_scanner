@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import pandas as pd
 import ccxt
 import requests
+import time
 from Config.config import CRYPTO_SYMBOLS, FOREX_SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
 from strategy import check_strategy
 
@@ -38,7 +39,7 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     
     url = f"{FCS_BASE_URL}/forex/history"
     params = {
-        'symbol': symbol,
+        'symbol': symbol.replace('/', '-'),
         'period': period,
         'limit': limit,
         'access_key': FCS_API_KEY
@@ -50,7 +51,6 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     if not data.get('status'):
         raise Exception(f"FCS API error: {data}")
     
-    # ساختار پاسخ ممکن است به صورت {'response': [{'o':..., 'c':...}]} باشد
     raw_data = data.get('response', [])
     
     rows = []
@@ -61,7 +61,7 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
             'High': float(item['high']),
             'Low': float(item['low']),
             'Close': float(item['close']),
-            'Volume': 0  # فارکس حجم معتبری ندارد
+            'Volume': 0
         })
     
     df = pd.DataFrame(rows)
@@ -106,8 +106,10 @@ def scan():
                     'time': df.index[-1],
                     'type': 'Forex/Gold'
                 })
+            time.sleep(20)  # برای رعایت محدودیت ۳ درخواست در دقیقه
         except Exception as e:
             print(f'  ❌ خطا در {symbol}: {e}')
+            time.sleep(20)
     
     return results
 
