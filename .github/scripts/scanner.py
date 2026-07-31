@@ -9,7 +9,10 @@ from Config.config import SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
 from strategy import check_strategy
 
 # ======================== تنظیمات FCS API ========================
-FCS_API_KEY = "YOUR_FCS_API_KEY"  # از fcsapi.com دریافت کن
+FCS_API_KEY = os.environ.get('FCS_API_KEY')
+if not FCS_API_KEY:
+    raise Exception("FCS_API_KEY not found in environment variables!")
+
 FCS_BASE_URL = "https://api-v4.fcsapi.com"
 
 # ======================== توابع دریافت داده ========================
