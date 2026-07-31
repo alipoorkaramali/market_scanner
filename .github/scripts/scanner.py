@@ -39,7 +39,7 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     
     url = f"{FCS_BASE_URL}/forex/history"
     params = {
-        'symbol': symbol.replace('/', '-'),
+        'symbol': symbol.replace('/', ''),  # ← تغییر فرمت به EURUSD
         'period': period,
         'limit': limit,
         'access_key': FCS_API_KEY
@@ -95,6 +95,7 @@ def scan():
     
     # اسکن فارکس و طلا
     print("\n🔄 اسکن فارکس و طلا (FCS API)...")
+    time.sleep(60)  # ← صبر برای ریست Rate Limit
     for symbol in FOREX_SYMBOLS:
         try:
             print(f'  بررسی {symbol}...')
@@ -106,10 +107,10 @@ def scan():
                     'time': df.index[-1],
                     'type': 'Forex/Gold'
                 })
-            time.sleep(20)  # برای رعایت محدودیت ۳ درخواست در دقیقه
+            time.sleep(30)  # ← ۳۰ ثانیه مکث
         except Exception as e:
             print(f'  ❌ خطا در {symbol}: {e}')
-            time.sleep(20)
+            time.sleep(30)  # ← ۳۰ ثانیه مکث در صورت خطا
     
     return results
 
