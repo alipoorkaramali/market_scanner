@@ -1,8 +1,15 @@
 SYMBOLS = [
+    # کریپتو (با "/")
     'BTC/USDT', 'ETH/USDT', 'BNB/USDT',
     'SOL/USDT', 'XRP/USDT', 'ADA/USDT',
-    'DOGE/USDT', 'DOT/USDT', 'LINK/USDT'
+    
+    # فارکس (بدون "/")
+    'EUR/USD', 'GBP/USD', 'USD/JPY',
+    'AUD/USD', 'USD/CHF',
+    
+    # طلا (XAU/USD)
+    'XAU/USD',
 ]
 
-TIMEFRAME = '4h'        # 4h, 1d, 1w
-LOOKBACK_DAYS = 180     # تعداد کندل (برای 4h، 180 کندل = 30 روز)
+TIMEFRAME = '4h'
+LOOKBACK_DAYS = 180  # ۱۸۰ کندل ۴ ساعته
