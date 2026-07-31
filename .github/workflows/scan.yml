@@ -8,23 +8,34 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    
     steps:
       - name: دریافت کد
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: نصب پایتون
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
+      - name: کش کردن کتابخانه‌های pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: نصب کتابخانه‌ها
-        run: pip install -r requirements.txt
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: اجرای اسکنر
-        run: python .github/scripts/scanner.py   # ← مسیر جدید
+        run: python .github/scripts/scanner.py
 
       - name: ذخیره خروجی
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: scan-results
           path: results/
