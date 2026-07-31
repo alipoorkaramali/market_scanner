@@ -1,6 +1,5 @@
-pandas
-numpy
-python-binance
+pandas<2.3.0
+numpy<2.0.0
 ccxt
-pandas-ta
+pandas_ta==0.3.14b0
 python-dotenv
