@@ -39,7 +39,7 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     
     url = f"{FCS_BASE_URL}/forex/history"
     params = {
-        'symbol': symbol.replace('/', ''),  # ← تغییر فرمت به EURUSD
+        'symbol': symbol.replace('/', ''),  # ← EURUSD
         'period': period,
         'limit': limit,
         'access_key': FCS_API_KEY
@@ -51,27 +51,52 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     if not data.get('status'):
         raise Exception(f"FCS API error: {data}")
     
-    raw_data = data.get('response', [])
+    raw_data = data.get('response')
+    if not raw_data:
+        raise Exception("هیچ داده‌ای از FCS API دریافت نشد")
     
     rows = []
-    for item in raw_data:
-        rows.append({
-            'timestamp': pd.to_datetime(item['time']),
-            'Open': float(item['open']),
-            'High': float(item['high']),
-            'Low': float(item['low']),
-            'Close': float(item['close']),
-            'Volume': 0
-        })
+    
+    # حالت ۱: اگر پاسخ دیکشنری باشد (کلیدها = زمان‌ها)
+    if isinstance(raw_data, dict):
+        for ts, values in raw_data.items():
+            rows.append({
+                'timestamp': pd.to_datetime(ts),
+                'Open': float(values['open']),
+                'High': float(values['high']),
+                'Low': float(values['low']),
+                'Close': float(values['close']),
+                'Volume': 0
+            })
+    # حالت ۲: اگر پاسخ لیست باشد (هر آیتم یک دیکشنری)
+    elif isinstance(raw_data, list):
+        for item in raw_data:
+            # پیدا کردن کلید زمان
+            ts_key = None
+            for key in ['time', 'date', 'timestamp']:
+                if key in item:
+                    ts_key = key
+                    break
+            if not ts_key:
+                continue
+            rows.append({
+                'timestamp': pd.to_datetime(item[ts_key]),
+                'Open': float(item['open']),
+                'High': float(item['high']),
+                'Low': float(item['low']),
+                'Close': float(item['close']),
+                'Volume': 0
+            })
+    else:
+        raise Exception(f"ساختار پاسخ قابل تشخیص نیست: {type(raw_data)}")
     
     df = pd.DataFrame(rows)
     if df.empty:
-        raise Exception("هیچ داده‌ای از FCS API دریافت نشد")
+        raise Exception("هیچ داده‌ای برای پردازش وجود ندارد")
     
     df.set_index('timestamp', inplace=True)
     df.sort_index(inplace=True)
     return df
-
 # ======================== تابع اسکن ========================
 
 def scan():
