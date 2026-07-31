@@ -39,7 +39,7 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     
     url = f"{FCS_BASE_URL}/forex/history"
     params = {
-        'symbol': symbol.replace('/', ''),  # ← EURUSD
+        'symbol': symbol.replace('/', ''),  # EURUSD
         'period': period,
         'limit': limit,
         'access_key': FCS_API_KEY
@@ -57,21 +57,20 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     
     rows = []
     
-    # حالت ۱: اگر پاسخ دیکشنری باشد (کلیدها = زمان‌ها)
+    # حالت ۱: دیکشنری (کلیدها = تایم‌استمپ)
     if isinstance(raw_data, dict):
         for ts, values in raw_data.items():
             rows.append({
-                'timestamp': pd.to_datetime(ts),
-                'Open': float(values['open']),
-                'High': float(values['high']),
-                'Low': float(values['low']),
-                'Close': float(values['close']),
+                'timestamp': pd.to_datetime(int(ts), unit='s'),
+                'Open': float(values['o']),
+                'High': float(values['h']),
+                'Low': float(values['l']),
+                'Close': float(values['c']),
                 'Volume': 0
             })
-    # حالت ۲: اگر پاسخ لیست باشد (هر آیتم یک دیکشنری)
+    # حالت ۲: لیست (هر آیتم یک دیکشنری)
     elif isinstance(raw_data, list):
         for item in raw_data:
-            # پیدا کردن کلید زمان
             ts_key = None
             for key in ['time', 'date', 'timestamp']:
                 if key in item:
