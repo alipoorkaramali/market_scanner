@@ -1,0 +1,6 @@
+pandas
+numpy
+python-binance
+ccxt
+pandas-ta
+python-dotenv
