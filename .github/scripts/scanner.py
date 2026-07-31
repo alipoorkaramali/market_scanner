@@ -1,10 +1,13 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 import pandas as pd
 import ccxt
-from config import SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
+from Config.config import SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
 from strategy import check_strategy
 
 def fetch_ohlcv(symbol: str, timeframe: str, limit: int):
-    """دریافت داده از صرافی با استفاده از ccxt"""
     exchange = ccxt.binance()
     ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
     df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
@@ -18,7 +21,6 @@ def scan():
         try:
             print(f'در حال بررسی {symbol}...')
             df = fetch_ohlcv(symbol, TIMEFRAME, LOOKBACK_DAYS)
-            
             if check_strategy(df):
                 results.append({
                     'symbol': symbol,
@@ -27,12 +29,10 @@ def scan():
                 })
         except Exception as e:
             print(f'خطا در {symbol}: {e}')
-    
     return results
 
 if __name__ == '__main__':
     signals = scan()
-    
     if signals:
         print('\n🔥 سیگنال‌های پیدا شده:')
         for s in signals:
