@@ -8,7 +8,8 @@ from Config.config import SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
 from strategy import check_strategy
 
 def fetch_ohlcv(symbol: str, timeframe: str, limit: int):
-    exchange = ccxt.binance()
+    exchange = ccxt.okx()
+    exchange.enableRateLimit = True  # جلوگیری از محدودیت درخواست
     ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
     df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
