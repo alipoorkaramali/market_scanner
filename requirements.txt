@@ -4,3 +4,4 @@ ccxt
 ta
 python-dotenv
 matplotlib
+requests
