@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import pandas as pd
 import ccxt
 import requests
-from Config.config import SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
+from Config.config import CRYPTO_SYMBOLS, FOREX_SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
 from strategy import check_strategy
 
 # ======================== تنظیمات FCS API ========================
@@ -29,12 +29,10 @@ def fetch_ohlcv_okx(symbol: str, timeframe: str, limit: int):
 
 def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     """دریافت داده فارکس/طلا از FCS API"""
-    # تبدیل تایم‌فریم به فرمت FCS
     timeframe_map = {
         '4h': '4h',
         '1d': '1d',
         '1w': '1w',
-        # در صورت نیاز تایم‌فریم‌های دیگر اضافه کن
     }
     period = timeframe_map.get(timeframe, '4h')
     
@@ -52,20 +50,17 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     if not data.get('status'):
         raise Exception(f"FCS API error: {data}")
     
-    # تبدیل پاسخ به دیتافریم
-    # پاسخ معمولاً به شکل {'response': [{'c': 1.06687, 'o': 1.066...}, ...]} است
-    # اما طبق مستندات، ممکن است به صورت دیکشنری با کلیدهای بازه زمانی برگردد
-    # با فرض ساده‌ترین حالت: {'response': {'2026-07-31 12:00:00': {'open': 1.066..., ...}, ...}}
-    raw_data = data.get('response', {})
+    # ساختار پاسخ ممکن است به صورت {'response': [{'o':..., 'c':...}]} باشد
+    raw_data = data.get('response', [])
     
     rows = []
-    for ts, values in raw_data.items():
+    for item in raw_data:
         rows.append({
-            'timestamp': pd.to_datetime(ts),
-            'Open': float(values['open']),
-            'High': float(values['high']),
-            'Low': float(values['low']),
-            'Close': float(values['close']),
+            'timestamp': pd.to_datetime(item['time']),
+            'Open': float(item['open']),
+            'High': float(item['high']),
+            'Low': float(item['low']),
+            'Close': float(item['close']),
             'Volume': 0  # فارکس حجم معتبری ندارد
         })
     
@@ -77,42 +72,51 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
     df.sort_index(inplace=True)
     return df
 
-def fetch_ohlcv(symbol: str, timeframe: str, limit: int):
-    """
-    تابع اصلی که بر اساس نوع نماد، از منبع مناسب داده می‌گیرد.
-    - اگر symbol شامل '/' باشد → کریپتو (OKX)
-    - در غیر این صورت → فارکس/طلا (FCS API)
-    """
-    if '/' in symbol:
-        return fetch_ohlcv_okx(symbol, timeframe, limit)
-    else:
-        return fetch_ohlcv_fcs(symbol, timeframe, limit)
-
 # ======================== تابع اسکن ========================
 
 def scan():
     results = []
-    for symbol in SYMBOLS:
+    
+    # اسکن کریپتوها
+    print("🔄 اسکن کریپتوها (OKX)...")
+    for symbol in CRYPTO_SYMBOLS:
         try:
-            print(f'در حال بررسی {symbol}...')
-            df = fetch_ohlcv(symbol, TIMEFRAME, LOOKBACK_DAYS)
-            
+            print(f'  بررسی {symbol}...')
+            df = fetch_ohlcv_okx(symbol, TIMEFRAME, LOOKBACK_DAYS)
             if check_strategy(df):
                 results.append({
                     'symbol': symbol,
                     'price': df['Close'].iloc[-1],
-                    'time': df.index[-1]
+                    'time': df.index[-1],
+                    'type': 'Crypto'
                 })
         except Exception as e:
-            print(f'خطا در {symbol}: {e}')
+            print(f'  ❌ خطا در {symbol}: {e}')
+    
+    # اسکن فارکس و طلا
+    print("\n🔄 اسکن فارکس و طلا (FCS API)...")
+    for symbol in FOREX_SYMBOLS:
+        try:
+            print(f'  بررسی {symbol}...')
+            df = fetch_ohlcv_fcs(symbol, TIMEFRAME, LOOKBACK_DAYS)
+            if check_strategy(df):
+                results.append({
+                    'symbol': symbol,
+                    'price': df['Close'].iloc[-1],
+                    'time': df.index[-1],
+                    'type': 'Forex/Gold'
+                })
+        except Exception as e:
+            print(f'  ❌ خطا در {symbol}: {e}')
     
     return results
 
 if __name__ == '__main__':
     signals = scan()
+    
     if signals:
         print('\n🔥 سیگنال‌های پیدا شده:')
         for s in signals:
-            print(f"  {s['symbol']} - قیمت: {s['price']:.2f} - زمان: {s['time']}")
+            print(f"  [{s['type']}] {s['symbol']} - قیمت: {s['price']:.2f} - زمان: {s['time']}")
     else:
         print('\n❌ هیچ سیگنالی پیدا نشد.')
