@@ -20,14 +20,14 @@ def validate():
     okx = ccxt.okx()
     df_okx = fetch_data(okx, 'BTC/USDT')
     
-    print("🔄 در حال دریافت داده از Binance...")
-    binance = ccxt.binance()
-    df_binance = fetch_data(binance, 'BTC/USDT')
+    print("🔄 در حال دریافت داده از KuCoin (برای مقایسه)...")
+    kucoin = ccxt.kucoin()
+    df_kucoin = fetch_data(kucoin, 'BTC/USDT')
     
     # رسم نمودار
     plt.figure(figsize=(12, 6))
     plt.plot(df_okx.index, df_okx['close'], label='OKX', marker='o', linewidth=2)
-    plt.plot(df_binance.index, df_binance['close'], label='Binance', marker='x', linewidth=2)
+    plt.plot(df_kucoin.index, df_kucoin['close'], label='KuCoin', marker='x', linewidth=2)
     plt.title('مقایسه قیمت بیت‌کوین (BTC/USDT) - ۳۰ روز گذشته')
     plt.xlabel('تاریخ')
     plt.ylabel('قیمت (USDT)')
@@ -41,19 +41,19 @@ def validate():
     
     # محاسبه آمار
     avg_okx = df_okx['close'].mean()
-    avg_binance = df_binance['close'].mean()
-    diff_percent = ((avg_okx - avg_binance) / avg_binance) * 100
+    avg_kucoin = df_kucoin['close'].mean()
+    diff_percent = ((avg_okx - avg_kucoin) / avg_kucoin) * 100
     
     # ذخیره آمار در فایل متنی
     with open('validation-results/stats.txt', 'w') as f:
         f.write(f"تاریخ اجرا: {datetime.now()}\n")
         f.write(f"میانگین قیمت OKX: {avg_okx:.2f} USDT\n")
-        f.write(f"میانگین قیمت Binance: {avg_binance:.2f} USDT\n")
+        f.write(f"میانگین قیمت KuCoin: {avg_kucoin:.2f} USDT\n")
         f.write(f"اختلاف درصدی: {diff_percent:.4f}%\n")
         f.write(f"تعداد کندل‌ها: {len(df_okx)}\n")
     
     print(f"\n📊 میانگین قیمت OKX: {avg_okx:.2f}")
-    print(f"📊 میانگین قیمت Binance: {avg_binance:.2f}")
+    print(f"📊 میانگین قیمت KuCoin: {avg_kucoin:.2f}")
     print(f"📊 اختلاف درصدی: {diff_percent:.4f}%")
     
     if abs(diff_percent) < 0.5:
