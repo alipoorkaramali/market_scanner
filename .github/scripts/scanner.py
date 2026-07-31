@@ -6,6 +6,8 @@ import pandas as pd
 import ccxt
 import requests
 import time
+import json
+from datetime import datetime
 from Config.config import CRYPTO_SYMBOLS, FOREX_SYMBOLS, TIMEFRAME, LOOKBACK_DAYS
 from strategy import check_strategy
 
@@ -101,12 +103,38 @@ def fetch_ohlcv_fcs(symbol: str, timeframe: str, limit: int):
 def scan():
     results = []
     
-    # اسکن کریپتوها
+    # ایجاد پوشه‌های خروجی
+    os.makedirs('data/raw', exist_ok=True)
+    scan_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    metadata = {
+        'scan_time': scan_time,
+        'timeframe': TIMEFRAME,
+        'lookback_days': LOOKBACK_DAYS,
+        'symbols': {}
+    }
+    
+    # ========== اسکن کریپتوها ==========
     print("🔄 اسکن کریپتوها (OKX)...")
     for symbol in CRYPTO_SYMBOLS:
         try:
             print(f'  بررسی {symbol}...')
             df = fetch_ohlcv_okx(symbol, TIMEFRAME, LOOKBACK_DAYS)
+            
+            # ذخیره داده‌های خام
+            clean_symbol = symbol.replace('/', '_')
+            filename = f"data/raw/{clean_symbol}_{datetime.now().strftime('%Y-%m-%d')}.csv"
+            df.to_csv(filename)
+            print(f'    ✅ داده‌ها ذخیره شد: {filename}')
+            
+            # ثبت متادیتا
+            metadata['symbols'][symbol] = {
+                'source': 'OKX',
+                'candles': len(df),
+                'last_price': float(df['Close'].iloc[-1]),
+                'last_time': str(df.index[-1])
+            }
+            
+            # بررسی استراتژی
             if check_strategy(df):
                 results.append({
                     'symbol': symbol,
@@ -117,13 +145,29 @@ def scan():
         except Exception as e:
             print(f'  ❌ خطا در {symbol}: {e}')
     
-    # اسکن فارکس و طلا
+    # ========== اسکن فارکس و طلا ==========
     print("\n🔄 اسکن فارکس و طلا (FCS API)...")
-    time.sleep(60)  # ← صبر برای ریست Rate Limit
+    time.sleep(60)
     for symbol in FOREX_SYMBOLS:
         try:
             print(f'  بررسی {symbol}...')
             df = fetch_ohlcv_fcs(symbol, TIMEFRAME, LOOKBACK_DAYS)
+            
+            # ذخیره داده‌های خام
+            clean_symbol = symbol.replace('/', '_')
+            filename = f"data/raw/{clean_symbol}_{datetime.now().strftime('%Y-%m-%d')}.csv"
+            df.to_csv(filename)
+            print(f'    ✅ داده‌ها ذخیره شد: {filename}')
+            
+            # ثبت متادیتا
+            metadata['symbols'][symbol] = {
+                'source': 'FCS API',
+                'candles': len(df),
+                'last_price': float(df['Close'].iloc[-1]),
+                'last_time': str(df.index[-1])
+            }
+            
+            # بررسی استراتژی
             if check_strategy(df):
                 results.append({
                     'symbol': symbol,
@@ -131,13 +175,18 @@ def scan():
                     'time': df.index[-1],
                     'type': 'Forex/Gold'
                 })
-            time.sleep(30)  # ← ۳۰ ثانیه مکث
+            time.sleep(30)
         except Exception as e:
             print(f'  ❌ خطا در {symbol}: {e}')
-            time.sleep(30)  # ← ۳۰ ثانیه مکث در صورت خطا
+            time.sleep(30)
+    
+    # ========== ذخیره متادیتا ==========
+    with open('data/metadata.json', 'w') as f:
+        json.dump(metadata, f, indent=2, default=str)
+    print("\n📊 متادیتا ذخیره شد: data/metadata.json")
     
     return results
-
+    
 if __name__ == '__main__':
     signals = scan()
     
